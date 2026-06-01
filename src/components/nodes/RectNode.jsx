@@ -45,13 +45,13 @@ export const RectNode = memo(({ data, selected }) => {
       } ${animClass}`}
     >
       <Handle type="target" position={Position.Top} id="top"
-        className="opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !bg-sky-600 hover:!bg-sky-400 !border-2 !border-white cursor-crosshair" />
+        className={`opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 hover:!bg-opacity-80 !border-2 !border-white cursor-crosshair ${mode === 'delegate' ? '!bg-purple-600 hover:!bg-purple-400' : mode === 'scheduled' ? '!bg-slate-600 hover:!bg-slate-400' : '!bg-sky-600 hover:!bg-sky-400'}`} />
       <Handle type="source" position={Position.Right} id="right"
-        className="opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !bg-sky-600 hover:!bg-sky-400 !border-2 !border-white cursor-crosshair" />
+        className={`opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 hover:!bg-opacity-80 !border-2 !border-white cursor-crosshair ${mode === 'delegate' ? '!bg-purple-600 hover:!bg-purple-400' : mode === 'scheduled' ? '!bg-slate-600 hover:!bg-slate-400' : '!bg-sky-600 hover:!bg-sky-400'}`} />
       <Handle type="source" position={Position.Bottom} id="bottom"
-        className="opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !bg-sky-600 hover:!bg-sky-400 !border-2 !border-white cursor-crosshair" />
+        className={`opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 hover:!bg-opacity-80 !border-2 !border-white cursor-crosshair ${mode === 'delegate' ? '!bg-purple-600 hover:!bg-purple-400' : mode === 'scheduled' ? '!bg-slate-600 hover:!bg-slate-400' : '!bg-sky-600 hover:!bg-sky-400'}`} />
       <Handle type="target" position={Position.Left} id="left"
-        className="opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !bg-sky-600 hover:!bg-sky-400 !border-2 !border-white cursor-crosshair" />
+        className={`opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 hover:!bg-opacity-80 !border-2 !border-white cursor-crosshair ${mode === 'delegate' ? '!bg-purple-600 hover:!bg-purple-400' : mode === 'scheduled' ? '!bg-slate-600 hover:!bg-slate-400' : '!bg-sky-600 hover:!bg-sky-400'}`} />
 
       <div className="flex items-center justify-between border-b border-black/10 pb-1 mb-2">
         <div className="flex items-center gap-1.5">
@@ -61,7 +61,7 @@ export const RectNode = memo(({ data, selected }) => {
         <div className="flex items-center gap-1">
           {priority !== 'normal' && (
             <span className={`text-[8px] font-bold px-1 py-0.5 rounded ${PRIORITY_BADGE[priority] || ''}`}>
-              {priority === 'critical' ? '!' : '!'}
+              {priority === 'critical' ? '!' : '↑'}
             </span>
           )}
           {mode === 'delegate' && <User className="w-3 h-3 text-purple-600" />}

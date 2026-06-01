@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { BaseEdge, getSmoothStepPath, useReactFlow } from '@xyflow/react';
 import './WorkflowEdge.css';
 
-function distanceToSegment(px, py, x1, y1, x2, y2) {
+function distToSegment(px, py, x1, y1, x2, y2) {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const lenSq = dx * dx + dy * dy;
@@ -12,191 +12,138 @@ function distanceToSegment(px, py, x1, y1, x2, y2) {
   return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
 }
 
-function insertWaypoint(points, clickPos) {
-  let bestIdx = 0;
+function insertWaypointIdx(points, pos) {
+  let best = 0;
   let bestDist = Infinity;
   for (let i = 0; i < points.length - 1; i++) {
-    const d = distanceToSegment(
-      clickPos.x, clickPos.y,
-      points[i].x, points[i].y,
-      points[i + 1].x, points[i + 1].y
-    );
-    if (d < bestDist) {
-      bestDist = d;
-      bestIdx = i;
-    }
+    const d = distToSegment(pos.x, pos.y, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
+    if (d < bestDist) { bestDist = d; best = i; }
   }
-  return bestIdx;
+  return best;
 }
 
-function buildPolylinePath(sourceX, sourceY, targetX, targetY, waypoints) {
-  const pts = [{ x: sourceX, y: sourceY }, ...waypoints, { x: targetX, y: targetY }];
+function polylinePath(sx, sy, tx, ty, wps) {
+  const pts = [{ x: sx, y: sy }, ...wps, { x: tx, y: ty }];
   return pts.reduce((d, p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `${d} L ${p.x} ${p.y}`), '');
 }
 
 export function WorkflowEdge({
-  id,
-  source,
-  target,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  data,
-  selected,
-  markerEnd,
-  style,
-  interactionWidth,
+  id, source, target,
+  sourceX, sourceY, targetX, targetY,
+  sourcePosition, targetPosition,
+  data, selected, markerEnd, style, interactionWidth,
 }) {
   const { screenToFlowPosition, setEdges } = useReactFlow();
-  const draggingRef = useRef(null);
-
-  const waypoints = data?.waypoints || [];
-
+  const dragRef = useRef(null);
+  const pathRef = useRef(null);
   const [smoothPath] = getSmoothStepPath({
     sourceX, sourceY, sourcePosition,
     targetX, targetY, targetPosition,
   });
 
+  const waypoints = data?.waypoints || [];
   const edgePath = waypoints.length > 0
-    ? buildPolylinePath(sourceX, sourceY, targetX, targetY, waypoints)
+    ? polylinePath(sourceX, sourceY, targetX, targetY, waypoints)
     : smoothPath;
 
-  const onWaypointMouseDown = useCallback((index, e) => {
+  const onWaypointDown = (index, e) => {
     e.stopPropagation();
     e.preventDefault();
-    draggingRef.current = index;
-  }, []);
+    dragRef.current = { type: 'waypoint', index };
+  };
 
   useEffect(() => {
-    const onMouseMove = (e) => {
-      if (draggingRef.current === null) return;
+    const move = (e) => {
+      const d = dragRef.current;
+      if (!d || d.type !== 'waypoint') return;
       const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      setEdges((eds) =>
-        eds.map((ed) => {
-          if (ed.id !== id) return ed;
-          const wps = [...(ed.data?.waypoints || [])];
-          wps[draggingRef.current] = pos;
-          return { ...ed, data: { ...ed.data, waypoints: wps } };
-        })
-      );
+      setEdges(eds => eds.map(ed => {
+        if (ed.id !== id) return ed;
+        const wps = [...(ed.data?.waypoints || [])];
+        wps[d.index] = pos;
+        return { ...ed, data: { ...ed.data, waypoints: wps } };
+      }));
     };
+    const up = () => { dragRef.current = null; };
 
-    const onMouseUp = () => {
-      draggingRef.current = null;
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    window.addEventListener('mouseleave', up);
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      window.removeEventListener('mouseleave', up);
     };
   }, [id, screenToFlowPosition, setEdges]);
 
-  const onEdgeDoubleClick = useCallback(
-    (e) => {
-      e.stopPropagation();
-      const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+  const onEdgeDoubleClick = useCallback(e => {
+    e.stopPropagation();
+    e.preventDefault();
+    const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    setEdges(eds => eds.map(ed => {
+      if (ed.id !== id) return ed;
+      const wps = [...(ed.data?.waypoints || [])];
+      const pts = [
+        { x: sourceX, y: sourceY }, ...wps,
+        { x: targetX, y: targetY },
+      ];
+      wps.splice(insertWaypointIdx(pts, pos), 0, pos);
+      return { ...ed, data: { ...ed.data, waypoints: wps } };
+    }));
+  }, [id, screenToFlowPosition, setEdges, sourceX, sourceY, targetX, targetY]);
 
-      setEdges((eds) =>
-        eds.map((ed) => {
-          if (ed.id !== id) return ed;
-          const wps = [...(ed.data?.waypoints || [])];
-          const pts = [
-            { x: sourceX, y: sourceY },
-            ...wps,
-            { x: targetX, y: targetY },
-          ];
-          const idx = insertWaypoint(pts, pos);
-          wps.splice(idx, 0, pos);
-          return { ...ed, data: { ...ed.data, waypoints: wps } };
-        })
-      );
-    },
-    [id, screenToFlowPosition, setEdges, sourceX, sourceY, targetX, targetY]
-  );
-
-  const onWaypointContextMenu = useCallback(
-    (index, e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setEdges((eds) =>
-        eds.map((ed) => {
-          if (ed.id !== id) return ed;
-          const wps = [...(ed.data?.waypoints || [])];
-          wps.splice(index, 1);
-          return { ...ed, data: { ...ed.data, waypoints: wps } };
-        })
-      );
-    },
-    [id, setEdges]
-  );
-
-  const onReconnectStart = useCallback(
-    (handleType, e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      draggingRef.current = handleType === 'source' ? 'reconnect-source' : 'reconnect-target';
-    },
-    []
-  );
+  const onWpContextMenu = useCallback((index, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEdges(eds => eds.map(ed => {
+      if (ed.id !== id) return ed;
+      const wps = [...(ed.data?.waypoints || [])];
+      wps.splice(index, 1);
+      return { ...ed, data: { ...ed.data, waypoints: wps.length ? wps : undefined } };
+    }));
+  }, [id, setEdges]);
 
   return (
     <g className="workflow-edge-group">
-      <BaseEdge
-        id={id}
-        path={edgePath}
-        markerEnd={markerEnd}
-        style={{
-          ...style,
-          transition: 'stroke 0.2s, stroke-width 0.2s',
-        }}
-        className={`workflow-edge-path ${selected ? 'workflow-edge-selected' : ''}`}
-        interactionWidth={interactionWidth || 24}
-      />
-
-      {selected && waypoints.map((wp, i) => (
-        <circle
-          key={`wp-${i}`}
-          cx={wp.x}
-          cy={wp.y}
-          r={5}
-          className="waypoint-dot"
-          onMouseDown={(e) => onWaypointMouseDown(i, e)}
-          onContextMenu={(e) => onWaypointContextMenu(i, e)}
-        />
-      ))}
-
-      {selected && (
-        <>
-          <circle
-            cx={sourceX}
-            cy={sourceY}
-            r={6}
-            className="reconnect-dot"
-            onMouseDown={(e) => onReconnectStart('source', e)}
-          />
-          <circle
-            cx={targetX}
-            cy={targetY}
-            r={6}
-            className="reconnect-dot"
-            onMouseDown={(e) => onReconnectStart('target', e)}
-          />
-        </>
-      )}
-
+      {/* 1. Invisible hit area FIRST = BOTTOM layer, only for double-click */}
       <path
         d={edgePath}
         fill="none"
         stroke="transparent"
         strokeWidth={20}
-        style={{ pointerEvents: 'all' }}
+        style={{ pointerEvents: 'stroke' }}
         onDoubleClick={onEdgeDoubleClick}
       />
+
+      {/* 2. Visible BaseEdge MIDDLE = React Flow handles selection + interactionWidth */}
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={markerEnd}
+        style={{ ...style, transition: 'stroke 0.2s, stroke-width 0.2s' }}
+        className={`workflow-edge-path ${selected ? 'workflow-edge-selected' : ''}`}
+        interactionWidth={interactionWidth || 24}
+      />
+
+      {/* 3. Waypoint dots TOP = draggable, always above path */}
+      {selected && waypoints.map((wp, i) => (
+        <circle
+          key={`wp-${i}`}
+          cx={wp.x} cy={wp.y}
+          r={5}
+          className="waypoint-dot"
+          onMouseDown={e => onWaypointDown(i, e)}
+          onContextMenu={e => onWpContextMenu(i, e)}
+        />
+      ))}
+
+      {/* 4. Reconnect visual dots TOP = visible but React Flow handles actual reconnect */}
+      {selected && (
+        <>
+          <circle cx={sourceX} cy={sourceY} r={6} className="reconnect-dot" />
+          <circle cx={targetX} cy={targetY} r={6} className="reconnect-dot" />
+        </>
+      )}
     </g>
   );
 }

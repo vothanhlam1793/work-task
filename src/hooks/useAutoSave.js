@@ -1,25 +1,30 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 export function useAutoSave(data, saveFn, delay = 2000) {
   const [hasChanges, setHasChanges] = useState(false);
   const dataRef = useRef(data);
+  const saveFnRef = useRef(saveFn);
 
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
 
   useEffect(() => {
+    saveFnRef.current = saveFn;
+  }, [saveFn]);
+
+  useEffect(() => {
     if (!hasChanges) return;
 
     const timer = setTimeout(() => {
-      saveFn(dataRef.current);
+      saveFnRef.current(dataRef.current);
       setHasChanges(false);
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [hasChanges, delay, saveFn]);
+  }, [hasChanges]);
 
-  const markDirty = () => setHasChanges(true);
+  const markDirty = useCallback(() => setHasChanges(true), []);
 
   return { markDirty, hasChanges };
 }

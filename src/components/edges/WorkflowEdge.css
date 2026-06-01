@@ -11,14 +11,13 @@
   stroke: #60a5fa !important;
   stroke-width: 3 !important;
   filter: drop-shadow(0 0 6px rgba(96, 165, 250, 0.5));
-  stroke-dasharray: 4 2;
-  animation: waypointDash 0.3s ease-out;
+  stroke-dasharray: 6 3;
+  animation: wpDash 0.4s ease-out;
 }
 
-@keyframes waypointDash {
-  to {
-    stroke-dashoffset: 0;
-  }
+@keyframes wpDash {
+  from { stroke-dashoffset: 18; }
+  to { stroke-dashoffset: 0; }
 }
 
 .waypoint-dot {

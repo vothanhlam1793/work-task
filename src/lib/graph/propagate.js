@@ -15,7 +15,7 @@ export function propagateDeadline(nodeId, delayMinutes, edges, nodes, setNodes) 
         ...n,
         data: {
           ...n.data,
-          deadline: newDeadline.toISOString().slice(0, 16),
+          deadline: newDeadline.toISOString(),
           _originalDeadline: n.data._originalDeadline || n.data.deadline,
           _delayMinutes: (n.data._delayMinutes || 0) + delayMinutes,
         },
@@ -31,7 +31,13 @@ export function resetDeadlines(nodeId, edges, nodes, setNodes) {
     nds.map((n) => {
       if (!downstreamCircles.find((c) => c.id === n.id)) return n;
       const { _originalDeadline, _delayMinutes, ...cleanData } = n.data;
-      return { ...n, data: cleanData };
+      return {
+        ...n,
+        data: {
+          ...cleanData,
+          deadline: _originalDeadline || cleanData.deadline,
+        },
+      };
     })
   );
 }

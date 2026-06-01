@@ -6,26 +6,28 @@ export const CircleNode = memo(({ data, selected }) => {
   const hasDeadline = !!data.deadline;
   const isOverdue = hasDeadline && new Date(data.deadline) < new Date();
 
+  const isWarning = !hasDeadline || isOverdue;
+
   return (
     <div
       className={`group w-32 h-32 rounded-full border-2 flex flex-col items-center justify-center p-3 text-center shadow-md transition-all duration-200 ${
-        !hasDeadline || isOverdue
+        isWarning
           ? 'bg-red-50 text-red-900 border-red-300'
           : 'bg-emerald-50 text-emerald-900 border-emerald-300'
       } ${
         selected
-          ? (!hasDeadline || isOverdue ? 'border-red-500 ring-4 ring-red-100' : 'border-emerald-500 ring-4 ring-emerald-100') + ' scale-105'
+          ? (isWarning ? 'border-red-500 ring-4 ring-red-100' : 'border-emerald-500 ring-4 ring-emerald-100') + ' scale-105'
           : ''
       }`}
     >
       <Handle type="target" position={Position.Top} id="top"
-        className="opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !bg-emerald-600 hover:!bg-emerald-400 !border-2 !border-white cursor-crosshair" />
+        className={`opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !border-2 !border-white cursor-crosshair ${isWarning ? '!bg-red-600 hover:!bg-red-400' : '!bg-emerald-600 hover:!bg-emerald-400'}`} />
       <Handle type="source" position={Position.Right} id="right"
-        className="opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !bg-emerald-600 hover:!bg-emerald-400 !border-2 !border-white cursor-crosshair" />
+        className={`opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !border-2 !border-white cursor-crosshair ${isWarning ? '!bg-red-600 hover:!bg-red-400' : '!bg-emerald-600 hover:!bg-emerald-400'}`} />
       <Handle type="source" position={Position.Bottom} id="bottom"
-        className="opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !bg-emerald-600 hover:!bg-emerald-400 !border-2 !border-white cursor-crosshair" />
+        className={`opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !border-2 !border-white cursor-crosshair ${isWarning ? '!bg-red-600 hover:!bg-red-400' : '!bg-emerald-600 hover:!bg-emerald-400'}`} />
       <Handle type="target" position={Position.Left} id="left"
-        className="opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !bg-emerald-600 hover:!bg-emerald-400 !border-2 !border-white cursor-crosshair" />
+        className={`opacity-0 group-hover:opacity-100 transition-opacity !w-3 !h-3 !border-2 !border-white cursor-crosshair ${isWarning ? '!bg-red-600 hover:!bg-red-400' : '!bg-emerald-600 hover:!bg-emerald-400'}`} />
 
       <div className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Mục tiêu</div>
       <div className="text-xs font-bold leading-tight break-words overflow-hidden max-h-12">

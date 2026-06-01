@@ -241,6 +241,7 @@ const WorkflowDashboard = () => {
 
       {editingNode && (
         <NodeEditor
+          key={editingNode.id}
           node={editingNode}
           onSave={handleNodeSave}
           onClose={() => setEditingNode(null)}
